@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Gpt Extension",
+  "description":"This is Extension for gpt to convert roman urdu to english",
+  "version": "1.0",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:3001/"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["styles.css"],
+      "js": ["content.js"]
+    }
+  ]
+}
