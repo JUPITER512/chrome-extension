@@ -1,8 +1,9 @@
+let target = null;
 document.body.addEventListener("keyup", function (event) {
-  const target = event.target;
+  target = event.target;
   if (
     target.tagName.toLowerCase() === "textarea" ||
-    (target.tagName.toLowerCase() === "input" &&
+    (target.tagName.toLowerCase() === "inputx" &&
       target.type.toLowerCase() === "text")
   ) {
     let tooltip = document.getElementById("translationTooltip");
@@ -19,7 +20,6 @@ document.body.addEventListener("keyup", function (event) {
 
     tooltip.onclick = function () {
       let optionsBar = document.getElementById("optionsBar");
-      this.classList.add("is-clicked");
       if (!optionsBar) {
         optionsBar = document.createElement("div");
         optionsBar.id = "optionsBar";
@@ -60,16 +60,16 @@ document.body.addEventListener("keyup", function (event) {
 
         const buttonThree = document.createElement("button");
         buttonThree.classList.add("fnBtn", "topcoat-button-bar__button");
-        buttonThree.id='transcribeAudio'
+        buttonThree.id = "transcribeAudio";
         buttonThree.innerText = "Transcribe";
         buttonThree.onclick = audioToText;
         bodyBox.appendChild(buttonThree);
 
-        const buttonFour = document.createElement("button");
-        buttonFour.classList.add("fnBtn", "topcoat-button-bar__button");
-        buttonFour.innerText = "UrduToEnglish";
-        buttonFour.onclick = urduToEnglish;
-        bodyBox.appendChild(buttonFour);
+        // const buttonFour = document.createElement("button");
+        // buttonFour.classList.add("fnBtn", "topcoat-button-bar__button");
+        // buttonFour.innerText = "UrduToEnglish";
+        // buttonFour.onclick = urduToEnglish;
+        // bodyBox.appendChild(buttonFour);
 
         optionsBar.appendChild(topBar);
         optionsBar.appendChild(bodyBox);
@@ -87,7 +87,7 @@ document.body.addEventListener("keyup", function (event) {
 });
 
 function convertRomanUrduToEnglish() {
-  const romanUrduText = document.getElementById("prompt-textarea").value;
+  const romanUrduText = target.value;
   const serverUrl = "http://localhost:3001/process-text";
 
   fetch(serverUrl, {
@@ -102,9 +102,8 @@ function convertRomanUrduToEnglish() {
     .then((response) => response.json())
     .then((data) => {
       console.log("Text copied to clipboard");
-      const element = document.getElementById("prompt-textarea");
-      element.value = data.translatedText;
-      element.innerText = data.translatedText;
+      target.value = data.translatedText;
+      target.innerText = data.translatedText;
     })
     .catch((err) => console.error("Error fetching or processing data:", err));
 }
@@ -141,15 +140,11 @@ function correctGrammarErrors() {
 //       //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //       //Record Audio
 
-let mediaRecorder = null
+let mediaRecorder;
 let recordedChunks = [];
 
-function resetRecordedChunks() {
-  recordedChunks = [];
-}
-
 function startRecording() {
-  resetRecordedChunks();
+  console.log(recordedChunks, " onStart");
   navigator.mediaDevices
     .getUserMedia({ audio: true })
     .then((stream) => {
@@ -159,83 +154,39 @@ function startRecording() {
           recordedChunks.push(event.data);
         }
       };
+      mediaRecorder.onstop = () => {
+        
+          sendAudioToServer();
+          audioType='';
+        
+        
+        // else if(audioType='urdu'){
+        //   urduToEngServer();
+        //   audioType=''
+        //   return;
+        // }
+      };
       mediaRecorder.start();
     })
     .catch((error) => {
       console.error("Error accessing microphone:", error);
-      resetRecordedChunks();
     });
 }
 
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
     mediaRecorder.stop();
+    recordedChunks = [];
   }
 }
 
 function sendAudioToServer() {
-  const audioFile = new File(recordedChunks,"recorded_audio.mp3", { type: 'audio/mp3' });
-  const formData = new FormData();
-  formData.append('audio', audioFile);
-  const serverUrl = "http://localhost:3001/transcribe-audio"; 
-  fetch(serverUrl, {
-      method: 'POST',
-      body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-      console.log("Transcription: ", data.transcription);
-  })
-  .catch(err => {
-      console.error('Error sending audio to server:', err);
-  });
-  mediaRecorder = null;
-  resetRecordedChunks();
-}
-
-function audioToText() {
-  if (!mediaRecorder) {
-    console.log("Start Recording");
-    startRecording();
-  } else {
-    console.log("Stop Recording");
-    stopRecording()
-    console.log(recordedChunks)
-    document.getElementById('transcribeAudio').disabled=true
-    console.log("Sending Audio to Server");
-    sendAudioToServer();
-    document.getElementById('transcribeAudio').disabled=false
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function urduToEngServer() {
   const audioFile = new File(recordedChunks, "recorded_audio", {
     type: "audio/mp3",
   });
   const formData = new FormData();
   formData.append("audio", audioFile);
-  const serverUrl = "http://localhost:3001/urdutoenglish";
+  const serverUrl = "http://localhost:3001/transcribe-audio";
 
   fetch(serverUrl, {
     method: "POST",
@@ -243,29 +194,68 @@ function urduToEngServer() {
   })
     .then((response) => response.json())
     .then((data) => {
-      console.log("Transcription: ", data.englishfromurdu);
-
-      document.getElementById("prompt-textarea").value = data.englishfromurdu;
+      console.log("Transcription: ", data.transcription);
+      target.value=data.transcription;
     })
     .catch((err) => {
       console.error("Error sending audio to server:", err);
-      resetRecordedChunks();
     });
 
   mediaRecorder = null;
-  resetRecordedChunks();
+  recordedChunks = [];
 }
-function urduToEnglish() {
+
+
+
+
+// function urduToEngServer() {
+//   const audioFile = new File(recordedChunks, "recorded_audio", {
+//     type: "audio/mp3",
+//   });
+//   const formData = new FormData();
+//   formData.append("audio", audioFile);
+//   const serverUrl = "http://localhost:3001/urdutoenglish";
+
+//   fetch(serverUrl, {
+//     method: "POST",
+//     body: formData,
+//   })
+//     .then((response) => response.json())
+//     .then((data) => {
+//       console.log("Transcription: ", data.englishfromurdu);
+//       target.value = data.englishfromurdu;
+//     })
+//     .catch((err) => {
+//       console.error("Error sending audio to server:", err);
+//       resetRecordedChunks();
+//     });
+
+//   mediaRecorder = null;
+//   recordedChunks = [];
+// }
+
+
+
+// let audioType='';
+function audioToText() {
   if (!mediaRecorder) {
     console.log("Start Recording");
-    recordedChunk=[]
+    // audioType='other';
     startRecording();
   } else {
     console.log("Stop Recording");
-    stopRecording().then(() => {
-      console.log(recordedChunks);
-    });
-    console.log("Sending Audio to Urdu Server");
-    urduToEngServer();
+    stopRecording();
   }
 }
+
+
+// function urduToEnglish() {
+//   if (!mediaRecorder) {
+//     console.log("Start Urdu Recording");
+//     audioType='urdu'
+//     startRecording();
+//   } else {
+//     console.log("Stop Urdu Recording");
+//     stopRecording()
+//   }
+// }
